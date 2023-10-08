@@ -2,7 +2,6 @@ public class Triple {
     public final static int SELECTIVITY_BITS = 4;
     public int triples[]= new int[3];
     public static int DATA_TYPE_BITS = 64;
-    //int varaibles[] = new int[3];
 
     public Triple(int s ,int p , int o){
         triples[0] = s ;
