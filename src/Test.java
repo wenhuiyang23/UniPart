@@ -1,26 +1,9 @@
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartFrame;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 
-import javax.swing.*;
 import java.io.*;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
 import java.util.*;
-
-import static java.lang.Math.pow;
-import static java.lang.Math.sqrt;
 
 
 public class Test {
@@ -208,7 +191,7 @@ public class Test {
                 Triple[] window = sublist.toArray(new Triple[windowSize]);
                 Runtime.getRuntime().gc();
                 long before =  Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                WStreamPro demo = new WStreamPro(windowSize, p, window, k);
+                WStreamPro demo = new UniPart(windowSize, p, window, k);
                 demo.initInfoFromWindow();
                 long startTime = System.currentTimeMillis();
                 for (int i = windowSize; i < flowUniq.size(); i++) {
@@ -286,7 +269,7 @@ public class Test {
                 Triple[] window = sublist.toArray(new Triple[windowSize]);
                 Runtime.getRuntime().gc();
                 long before =  Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                WStreamPro demo = new WStreamPro(windowSize, p, window, k);
+                UniPart demo = new UniPart(windowSize, p, window, k);
                 demo.initInfoFromWindow();
                 long startTime = System.currentTimeMillis();
                 for (int i = windowSize; i < orderedTriples.size(); i++) {

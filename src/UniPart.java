@@ -1,12 +1,9 @@
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Random;
 
-import static java.lang.Math.*;
-
-public class WStreamPro {
+public class UniPart {
 
     private int wsize;
 
@@ -26,7 +23,7 @@ public class WStreamPro {
     public int edgeCut;
     private HashMap<Integer,ArrayList> n_inWindow = new HashMap<Integer,ArrayList>();
 
-    public WStreamPro(int windowSize, int pValue, Triple[] win, int kValue ){
+    public UniPart(int windowSize, int pValue, Triple[] win, int kValue ){
         this.wsize = windowSize;
         this.p = pValue;
         this.window = win;
