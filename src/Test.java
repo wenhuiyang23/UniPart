@@ -185,38 +185,29 @@ public class Test {
 
     }
 
-    public static void main(String[] args) throws Exception {
-        int windowSize = 1000;
-        int p = 600;
-        int k = 4;
+    /*public static void main(String[] args) throws Exception {
+        int windowSize = 5000;
+        int p = 380509;
+        int k = 16;
 
         Test t = new Test();
         try {
             ArrayList<String> filePaths = new ArrayList<String>();
-            filePaths.add("/home/wenhui/lubm/merged10.nq");
+            filePaths.add("/home/wenhui/lubm/merged100.nq");
             //filePaths.add("/home/wenhui/yagoInfoboxAttributes_en.ttl");
 
             try {
 
                 t.process(filePaths, true);
-
-        //FileWriter fw = new FileWriter("output.txt");
-        //BufferedWriter bufferWriter = new BufferedWriter(fw);
-
-
                 double edgeCutRatio = 0.0;
 
                 ArrayList<Triple> flowUniq = t.removeDuplicates(flow);
 
-            Collections.shuffle(flowUniq);
-            List<Triple> sublist = flowUniq.subList(0, Math.min(flowUniq.size(), windowSize));
-            Triple[] window = sublist.toArray(new Triple[windowSize]);
-                Runtime r = Runtime.getRuntime();
-                r.gc();
-                Thread.sleep(100);
-                MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-                MemoryUsage beforeMemoryUsage = memoryMXBean.getHeapMemoryUsage();
-
+                Collections.shuffle(flowUniq);
+                List<Triple> sublist = flowUniq.subList(0, Math.min(flowUniq.size(), windowSize));
+                Triple[] window = sublist.toArray(new Triple[windowSize]);
+                Runtime.getRuntime().gc();
+                long before =  Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                 WStreamPro demo = new WStreamPro(windowSize, p, window, k);
                 demo.initInfoFromWindow();
                 long startTime = System.currentTimeMillis();
@@ -233,42 +224,10 @@ public class Test {
                 }
                 long endTime = System.currentTimeMillis();
                 long duration = endTime - startTime;
-
-                r.gc();
-                Thread.sleep(100);
-                MemoryUsage afterMemoryUsage = memoryMXBean.getHeapMemoryUsage();
-                long memoryUsed = afterMemoryUsage.getUsed() - beforeMemoryUsage.getUsed();
-                System.out.println("running：" + duration + " ms");
+                long after =  Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long memoryUsed = after - before;
                 System.out.println("max memory used：" + memoryUsed/ (1024.0 * 1024.0) + " mb");
-
-
-
-               /* JFreeChart chart = ChartFactory.createLineChart(
-                        "Line Chart Example",
-                        "windowsize",
-                        "time",
-                        dataset,
-                        PlotOrientation.VERTICAL,
-                        false,true,
-                        false
-                );
-                ChartPanel chartPanel = new ChartPanel(chart);
-                JFrame frame = new JFrame("Line Chart Example");
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setSize(500, 400);
-                frame.getContentPane().add(chartPanel);
-                frame.setVisible(true); */
-
-                // output file
-                /*for (Map.Entry<Integer, Integer> entry : demo.partitionRes.entrySet()) {
-                    int key = entry.getKey();
-                    int value = entry.getValue();
-                    bufferWriter.write(key + " " + value);
-                    bufferWriter.newLine();
-                }
-                bufferWriter.close();
-                fw.close();*/
-
+                System.out.println("running：" + duration + " ms");
                 edgeCutRatio = (double) demo.edgeCut / flowUniq.size();
                 double sum = demo.partitionSize.stream().mapToInt(Integer::intValue).sum();
                 double loadBalance = Collections.max(demo.partitionSize) / (sum / k);
@@ -277,16 +236,92 @@ public class Test {
                 System.out.println("loadbalanceRatio " + loadBalance);
                 System.out.println(demo.partitionSize);
 
-
-                    }catch (Exception e){
+            }catch (Exception e){
                         e.printStackTrace();
                     }
 
-                }catch (Exception e){
+        }catch (Exception e){
                     e.printStackTrace();
                     t.finish();
+        }
+    }*/
+
+    public static HashMap<Integer, ArrayList<Triple>> createSubjectIndex(ArrayList<Triple> flow) {
+        HashMap<Integer, ArrayList<Triple>> subjectIndex = new HashMap<>();
+        for (Triple triple : flow) {
+            int subject = triple.triples[0];
+            subjectIndex.putIfAbsent(subject, new ArrayList<>());
+            subjectIndex.get(subject).add(triple);
+            int object = triple.triples[2];
+            subjectIndex.putIfAbsent(object, new ArrayList<>());
+            subjectIndex.get(object).add(new Triple(triple.triples[2],triple.triples[1],triple.triples[0]));
+        }
+        return subjectIndex;
+    }
+
+    public static void main(String[] args) throws Exception {
+        int windowSize = 5000;
+        int p = 380509;
+        int k = 16;
+
+        Test t = new Test();
+        try {
+            ArrayList<String> filePaths = new ArrayList<String>();
+            filePaths.add("/home/wenhui/lubm/merged100.nq");
+            //filePaths.add("/home/wenhui/yagoInfoboxAttributes_en.ttl");
+
+            try {
+
+                t.process(filePaths, true);
+                double edgeCutRatio = 0.0;
+
+                ArrayList<Triple> flowUniq = t.removeDuplicates(flow);
+                HashMap<Integer, ArrayList<Triple>> subjectIndex = createSubjectIndex(flowUniq);
+
+                GraphSerializer graph = new GraphSerializer(subjectIndex);
+                Set<Integer> vertices = subjectIndex.keySet();
+                List<Triple> orderedTriples = graph.dfsAll(vertices);
+                //List<Triple> orderedTriples = graph.bfsAll(vertices);
+                List<Triple> sublist = orderedTriples.subList(0, Math.min(flowUniq.size(), windowSize));
+                Triple[] window = sublist.toArray(new Triple[windowSize]);
+                Runtime.getRuntime().gc();
+                long before =  Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                WStreamPro demo = new WStreamPro(windowSize, p, window, k);
+                demo.initInfoFromWindow();
+                long startTime = System.currentTimeMillis();
+                for (int i = windowSize; i < orderedTriples.size(); i++) {
+                    demo.partition();
+                    demo.update(orderedTriples.get(i));
+
                 }
+                for (int i = 0; i < windowSize; i++) {
+                    demo.partition();
+                    demo.update(new Triple(-1, -1, -1));
+                }
+                long endTime = System.currentTimeMillis();
+                long duration = endTime - startTime;
+
+                long after =  Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long memoryUsed = after - before;
+                System.out.println("max memory used：" + memoryUsed/ (1024.0 * 1024.0) + " mb");
+                System.out.println("running：" + duration + " ms");
+                edgeCutRatio = (double) demo.edgeCut / orderedTriples.size();
+                double sum = demo.partitionSize.stream().mapToInt(Integer::intValue).sum();
+                double loadBalance = Collections.max(demo.partitionSize) / (sum / k);
+                System.out.println("edgeRatio " + edgeCutRatio);
+                System.out.println("loadbalanceRatio " + loadBalance);
+                System.out.println("orderSize "+ orderedTriples.size());
+                System.out.println(demo.partitionSize);
+            }catch (Exception e){
+                e.printStackTrace();
             }
+
+        }catch (Exception e){
+            e.printStackTrace();
+            t.finish();
+        }
+    }
+
 
     public ArrayList<Triple> removeDuplicates(ArrayList<Triple> data) {
         ArrayList<Triple> flownew = new ArrayList<>();
